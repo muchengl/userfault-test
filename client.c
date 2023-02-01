@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +37,20 @@ struct faulting_thread_args {
 
 static int *__faulting_thread(struct faulting_thread_args *args)
 {
+    int dev_null = chk_sys(open("/dev/null", O_WRONLY)); 
+
     for (int i=0; i < args->playground_size; i++) { 
-        args->playground[i] = (uint8_t) random(); 
+        /* Trigger a page fault by reading from playground */
+        int x = args->playground[i] + 2; 
+        write(dev_null, &x, sizeof(x)); 
+
+        uint64_t page_boundary = ((uint64_t) &args->playground[i]) & ~(page_size - 1); 
+        if ((uint64_t) &args->playground[i] == page_boundary) { 
+            printf("faulted page contents: %s\n", (char *) page_boundary); 
+        }
     }
+
+    chk_sys(close(dev_null)); 
     return NULL; 
 }
 
