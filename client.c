@@ -36,7 +36,7 @@ struct faulting_thread_args {
 
 static int *__faulting_thread(struct faulting_thread_args *args)
 {
-    for (int i = args->playground_size-1; i >= 0; i--) { 
+    for (int i=0; i < args->playground_size; i++) { 
         args->playground[i] = (uint8_t) random(); 
     }
     return NULL; 
@@ -64,7 +64,7 @@ static void fetch_remote_page(uint8_t *page)
                 sizeof(server_addr))); 
     int bytes_read = chk_sys(read(socket_fd, page, page_size)); 
     if (bytes_read != page_size) { 
-        // Yes, yes, I know this fails if there's TCP fragmentation. 
+        /* Yes, yes, I know this fails if there's TCP fragmentation, etc. */
         fprintf(stderr, "Unable to read enough bytes from server\n");
         exit(EXIT_FAILURE);
     }
@@ -126,14 +126,13 @@ static int init_userfaultfd(uint8_t *addr, int len)
 
 int main(int argc, char *argv[])
 {
-    int err; 
+    page_size = sysconf(_SC_PAGE_SIZE); 
 
     /* 
      * Intercepting page faults for this program's _instructions_ would
      * immediately terminate the program. Instead, we restrict userfaultfd
      * to a small memory range. 
      */
-    page_size = sysconf(_SC_PAGE_SIZE); 
     int playground_size = 1000 * page_size; 
     // Linux supports MAP_ANONYMOUS; don't need to map /dev/zero like in BSD. 
     uint8_t *playground = mmap(NULL, playground_size, 
@@ -149,8 +148,9 @@ int main(int argc, char *argv[])
     struct faulting_thread_args faulting_thread_args = { 
         .playground = playground, .playground_size = playground_size 
     }; 
-    if ((err = pthread_create(&worker, NULL, faulting_thread, 
-                    (void *) &faulting_thread_args))) { 
+    int err = pthread_create(&worker, NULL, faulting_thread, 
+            (void *) &faulting_thread_args); 
+    if (err) { 
         fprintf(stderr, "%s:%d: %s\n", __func__, __LINE__, strerror(err)); 
         exit(EXIT_FAILURE);
     }
