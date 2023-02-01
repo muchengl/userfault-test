@@ -42,6 +42,7 @@ static void init_page()
  */
 static void handle_connection(int connection_fd)
 {
+    printf("Received request from client\n"); 
     snprintf((char *) page.data, page.size, "Request #%d\n", page.index);
     page.index++;
 

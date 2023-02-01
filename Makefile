@@ -1,5 +1,7 @@
+CCFLAGS := -pthread
+
 server: server.c
-	cc server.c -o server
+	cc $(CCFLAGS) server.c -o server
 
 client: client.c
-	cc client.c -o client
+	cc $(CCFLAGS) client.c -o client
