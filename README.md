@@ -1,6 +1,6 @@
 # userfault-test
 
-Test the user space page fault. Using userfalutfd.
+Test the user space page fault. Using userfaultfd.
 
 **Server端**使用malloc申请内存，并进行初始化。**Client端**使用mmap初始化内存，将fd参数设置为-1，从而获得大量未被映射的内存。并将这些内存标记为UFFD_EVENT_PAGEFAULT，即内核应将该内存的Page fault交给用户处理。Client端开启一个fault触发线程，不断按顺序access page，触发page fault。client端监听描述符uffd，获取内核传来的user fault信息，并通过udp协议，从server端获取相应的page，进行内存初始化。
 
