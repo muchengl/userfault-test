@@ -44,6 +44,7 @@ double network_time=0;
 double faulting_thread_time=0;
 double handle_pagefault_time=0;
 double wait_time=0;
+double init_time=0;
 
 
 
@@ -143,14 +144,14 @@ static void handle_pagefault(int uffd, struct uffd_msg *uffd_msg)
     //         (uint64_t) uffd_msg->arg.pagefault.address); 
 
     //printf("%d\n",page_idx);
-
+    clock_t start=clock(); 
     uint8_t *page = malloc(page_size); 
 
 
     fetch_remote_page(page); 
 
 
-    clock_t start=clock(); 
+    
 
     struct uffdio_copy uffdio_copy; 
     memset(&uffdio_copy, 0, sizeof(uffdio_copy)); 
@@ -203,6 +204,14 @@ int main(int argc, char *argv[])
 {
     
     double ans=0;
+
+    double network_total=0;
+    double faulting_thread_total=0;
+    double handle_pagefault_total=0;
+    double wait_total=0;
+    double init_total=0;
+
+
     int n=10;
     for(int i=0;i<n;i++) {
 
@@ -212,7 +221,9 @@ int main(int argc, char *argv[])
     faulting_thread_time=0;
     handle_pagefault_time=0;
     wait_time=0;
+    init_time=0;
 
+    clock_t a1=clock();
     page_size = sysconf(_SC_PAGE_SIZE); 
 
     /* 
@@ -221,7 +232,8 @@ int main(int argc, char *argv[])
      * to a small memory range. 
      */
     
-    int pagenum=24999;
+    int pagenum=100;
+
     int playground_size = pagenum * page_size; 
 
 
@@ -248,6 +260,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s:%d: %s\n", __func__, __LINE__, strerror(err)); 
         exit(EXIT_FAILURE);
     }
+    clock_t a2=clock(); 
+    init_time+=(double)(a2-a1) / CLOCKS_PER_SEC;
 
 
 
@@ -285,15 +299,27 @@ int main(int argc, char *argv[])
             printf("====================\n");
             printf("Page size: %d B  Page number: %d \n",page_size,pagenum);
             printf("Memory: %d Mb\n",page_size*pagenum/(1000*1000));
-            printf( "%f Seconds\n", Total_time); 
+            printf( "%f Seconds\n\n", Total_time); 
+
+            printf("Fault thread time: %f\n\n",faulting_thread_time);
 
             printf("Network time: %f\n",network_time);
-            printf("Fault thread time: %f\n",faulting_thread_time);
+            handle_pagefault_time=handle_pagefault_time-network_time;
             printf("Handle pagefault time: %f\n",handle_pagefault_time);
-            printf("Wait time: %f\n",wait_time);
-            printf("Total time :%f\n",network_time+faulting_thread_time+handle_pagefault_time+wait_time);
-            ans+=network_time+faulting_thread_time+handle_pagefault_time+wait_time;
+            printf("IO Wait time: %f\n",wait_time);
+            printf("Init time: %f\n",init_time);
+            printf("Total time :%f\n",network_time+handle_pagefault_time+wait_time+init_time);
+            
             printf("====================\n\n");
+
+            ans+=network_time+handle_pagefault_time+wait_time+init_time;
+            network_total+=network_time;
+            faulting_thread_total+=faulting_thread_time;
+            handle_pagefault_total+=handle_pagefault_time;
+            wait_total+=wait_time;
+            init_total+=init_time;
+
+
             break;
         }
        
@@ -302,7 +328,14 @@ int main(int argc, char *argv[])
     chk_sys(munmap(playground, playground_size)); 
     }
 
-    printf("Ans:%f\n",ans);
+    printf("Faulting thread time:%f \n\n",faulting_thread_total/n);
+
+    printf("Network time:%f \n",network_total/n);
+    printf("Handle pagefault time:%f \n",handle_pagefault_total/n);
+    printf("IO Wait total:%f \n",wait_total/n);
+    printf("Init total:%f \n",init_total/n);
+
+    //printf("Ans:%f\n",ans);
     printf("Ans_a:%f\n",ans/n);
 
     return EXIT_SUCCESS;
