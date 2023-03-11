@@ -10,10 +10,16 @@ client: client.c
 server_udp: server_udp.c
 	cc $(CCFLAGS) server_udp.c -o server_udp
 
+server_udp_time_test: server_udp_time_test.c
+	cc $(CCFLAGS) server_udp_time_test.c -o server_udp_time_test
+
 client_udp: client_udp.c
 	cc $(CCFLAGS) client_udp.c -o client_udp
 
 client_udp_time_test: client_udp_time_test.c
 	cc $(CCFLAGS) client_udp_time_test.c -o client_udp_time_test
+
+
+
 
 
